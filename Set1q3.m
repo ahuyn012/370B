@@ -5,9 +5,9 @@ clc;
 % givens
 gas = HFC134a();
 x6 = 1;
-T6 = 5+298.15;
+T6 = 5+273.15;
 x3 = 0;
-T3 = 50+298.15;
+T3 = 50+273.15;
 Ecomp = 0.85;
 Eex = 0.8;
 % mflow = ;
@@ -41,7 +41,6 @@ h5 = h4;
 
 % calculate state 2 using compressor work
 [win, h2] = comp_work(Ecomp, P1, P2, h1);
-h2 = win+h1;
 
 % calculate COP and capacity
 qevap = h6-h5;
@@ -202,6 +201,7 @@ for j=1:1:length(slist)
     end
 end
 
+
 figure(1)
 i = 1;
 semilogy(htempline(i,:)/1e3,Ptempline(i,:)/1e6,'r', 'LineWidth',1.7);
@@ -236,7 +236,7 @@ end
 semilogy(enthalpies/1e3, pressures/1e6, '--ok', 'LineWidth',1.7);
 hold on;
 for i = 1:6
-    text(enthalpies(i)/1e3 + 8,pressures(i)/1e6 - .2,int2str(i), "FontWeight", "bold");
+    text(enthalpies(i)/1e3+7,pressures(i)/1e6-.1,int2str(i), "FontWeight", "bold");
 end
 ylim([5*1e-5, 1e2]);
 text(-190, .0002, strcat("COP: ", num2str(COP)), "FontWeight", "bold");
@@ -245,7 +245,11 @@ legend('Vapor Compression Cycle','Isotherms (K)', 'Isentropes (kJ/kg-K)');
 hold off;
 %plotfixer;
 
-
+set(gas,'P',P2,'H',h2);
+T2 = temperature(gas);
+set(gas,'P',P6,'H',h6);
+T6 = temperature(gas);
+carnot = T6/(T2-T6);
 
 
 
@@ -269,7 +273,7 @@ function [total_w, H] = comp_work(eta, Pin, Pout, h0)
     
         dw = dw_s/eta; % actual work
         setState_HP(w, [h1+dw, p]) % actual new state of steam 
-        total_w = total_w + eta*dw; % sum all steps
+        total_w = total_w + dw; % sum all steps
     end
     H = enthalpy_mass(w);
 end
