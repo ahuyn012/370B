@@ -1,0 +1,40 @@
+% Define state properties
+P1a = 100000; % pressure at state 1a (Pa)
+P2a = 20*P1a; % pressure at state 2a (Pa)
+
+X_f = 'CH4:0.907,C2H6:0.036,C3H8:0.019,N2:0.018,CO2:0.01,O2:0.01'; % fuel composition
+P1f = 100000; % pressure at state 1f (Pa)
+T1f = 293.15; % temperature at state 1f (K)
+P2f_1 = 2*P2a; % pressure at state 2a before valve (Pa)
+
+% Find T2f_1 using polytropic efficiency
+eta = 0.90; % compressor efficiency
+P_in = P1f; % inlet pressure
+P_out = P2f_1; % outlet pressure
+gas = Solution('gri30.yaml'); % set gas using GRI3.0 mechanism
+set(gas,'T',T1f,'P',P1f,'X',X_f); % define gas properties
+h0 = enthalpy_mass(gas); % enthalpy at inlet (J/kg)
+[total_w, H] = comp_work(eta, P_in, P_out, h0); % returns work and total enthalpy
+set(gas,'H',H,'P',P2f_1,'X',X_f); % define gas properties
+T2f_1 = temperature(gas); % temperature at state 2f before valve (K)
+H2f_2 = H;
+
+% Gives the total work and the enthalpy of the compressor
+function [total_w, H] = comp_work(eta, P_in, P_out, h0)
+    w = Solution('gri30.yaml'); % set gas using GRI3.0 Mechanism
+    set(w,'H',h0,'P',P_in,'X','O2:0.21,N2:0.79'); % define parameters
+    n = 101; % discretization points for pressure
+    h = (P_out-P_in)/n; % integration step
+    total_w = 0; % total work output of compressor
+    for p = P_in+h:h:P_out
+        h1 = enthalpy_mass(w);
+        s0 = entropy_mass(w);
+        setState_SP(w, [s0, p]) % isentropic expansion; set entropy & pressure
+        h2 = enthalpy_mass(w);
+        dw_s = h2-h1; % isentropic work
+        dw = dw_s/eta; % actual work
+        setState_HP(w, [h1+dw, p]) % actual new state
+        total_w = total_w + dw; % sum all steps
+    end
+    H = enthalpy_mass(w);
+end
